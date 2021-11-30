@@ -7,19 +7,7 @@
 #define VERTEX_NUM 10 // 정점의 개수
 #define RESULT_SIZE 100 // 결과 배열 크기
 
-int check[VERTEX_NUM];
-int count = 0;
-int r; // 최대 vertex
-int mang_num = 0; // 무선망 수
-char* finalresult[RESULT_SIZE]; // 최종 무선망 집합 저장
-char* DFSresult[RESULT_SIZE]; // DFS를 통해 찾은 집합 저장
-
 //구조체 선언
-typedef struct Graph {
-	int n; // 정점의 갯수
-	V_info* connected_V[VERTEX_NUM]; // 연결된 정점에 대한 정보
-}Graph;
-
 typedef struct V_info { // 정점에 대한 정보
 	int v;
 	struct V_info* link;
@@ -28,13 +16,26 @@ typedef struct V_info { // 정점에 대한 정보
 	int z; //z 좌표
 }V_info;
 
+typedef struct Graph {
+	int n; // 정점의 갯수
+	V_info* connected_V[VERTEX_NUM]; // 연결된 정점에 대한 정보
+}Graph;
+
 // 함수 선언
 Graph* init_Graph(void);
 void init_check();
-void add_V(Graph* graph);
-void add_E(Graph* graph, int u, int v);
+void add_E(Graph* graph);
+void add_V(Graph* graph, int start, int end);
 void DFS(Graph *graph, char** DFSresult);
-void Tree(Graph *graph, int n, char** buffer);
+void DFS_process(Graph *graph, int n, char** buffer);
+
+// 전역변수 선언
+int check[VERTEX_NUM];
+int count = 0;
+int r; // 최대 vertex
+int mang_num = 0; // 무선망 수
+char* finalresult[RESULT_SIZE]; // 최종 무선망 집합 저장
+char* DFSresult[RESULT_SIZE]; // DFS를 통해 찾은 집합 저장
 
 int main() {
     srand(time(NULL)); // 난수 생성을 위한 초기 설정
@@ -57,7 +58,7 @@ int main() {
 
 	// 정점 랜덤 추가
 	for (int i = 0; i < VERTEX_NUM; i++) {
-		add_V(graph);
+		add_E(graph);
 	}
 	
 	// 정점 사이의 길이 r 보다 작은 edge만 edge를 생성.
@@ -70,7 +71,7 @@ int main() {
             + pow(graph->connected_V[i]->y - graph->connected_V[j]->y, 2) 
             + pow(graph->connected_V[i]->z - graph->connected_V[j]->z, 2)))<=(double)r) {
 				// 무선망 길이보다 가까운 vertex만 연결
-				add_E(graph, i, j);
+				add_V(graph, i, j);
 			}
 		}
 	}
@@ -87,7 +88,7 @@ int main() {
 	}
 
 	// 결과 출력
-	printf("-------정점 V의 좌표-------\n");
+	printf("\n[정점 V의 좌표]\n\n");
 	for (int i = 0; i < 10; i++) {
 		printf("|V%d|x : %2d|y : %2d|z : %2d|\n",i,graph->connected_V[i]->x, graph->connected_V[i]->y, graph->connected_V[i]->z);
 	}
@@ -102,7 +103,7 @@ int main() {
 		printf("전체는 하나의 무선망으로 연결되지 않는다.\n");
 		printf("무선망의 수 : %d개\n", mang_num);
 	}
-	printf("\n-------정점의 집합-------\n");
+	printf("\n[정점의 집합]\n");
 
 	for (int i = 0; i < mang_num; i++) {
 		printf("%d번째 집합 - {%s}\n",i+1,finalresult[i]);
@@ -127,7 +128,7 @@ void init_check(){
 	}
 }
 
-void add_V(Graph* graph) {
+void add_E(Graph* graph) {
 	int a = -6, b = 6; // 랜덤값 범위 : a~b
 	graph->connected_V[graph->n] = (V_info*)malloc(sizeof(V_info));
 	graph->connected_V[graph->n]->v = -1;
@@ -138,31 +139,31 @@ void add_V(Graph* graph) {
 	graph->n++;
 }
 
-void add_E(Graph* graph, int u, int v) {
-	if (u >= graph->n || v >= graph->n) {
+void add_V(Graph* graph, int start, int end) {
+	if (start >= graph->n || end >= graph->n) {
 		printf("Graph 범위가 아닙니다.\n");
 	}
 	else {
 		V_info* V_u = (V_info*)malloc(sizeof(V_info));
 		V_info* V_v = (V_info*)malloc(sizeof(V_info));
-		V_u->v = u;
-		V_v->v = v;
-		V_v->link = graph->connected_V[u]->link;
-		graph->connected_V[u]->link = V_v;
-		V_u->link = graph->connected_V[v]->link;
-		graph->connected_V[v]->link = V_u;
+		V_u->v = start;
+		V_v->v = end;
+		V_v->link = graph->connected_V[start]->link;
+		graph->connected_V[start]->link = V_v;
+		V_u->link = graph->connected_V[end]->link;
+		graph->connected_V[end]->link = V_u;
 	}
 }
 
 
 void DFS(Graph *graph, char** DFSresult) {
 	for (int i = 0; i < VERTEX_NUM; i++) {
-		Tree(graph, i, DFSresult);
+		DFS_process(graph, i, DFSresult);
 		count++;
 	}
 }
 
-void Tree(Graph *graph, int n, char** buffer) {
+void DFS_process(Graph *graph, int n, char** buffer) {
 	if (check[n] == 0) {
 		V_info* temp1;
 		V_info* temp2;
@@ -178,7 +179,7 @@ void Tree(Graph *graph, int n, char** buffer) {
 		while (temp1 != NULL) {
 			temp2 = temp1->link;
 			if (check[temp1->v] == 0)
-				Tree(graph, temp1->v, buffer);
+				DFS_process(graph, temp1->v, buffer);
 			temp1 = temp2;
 		}
 	}
