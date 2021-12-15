@@ -38,4 +38,4 @@ order = [None] * (V+1)  # 순회 체크 리스트
 cnt = 0
 dfs(1, None)
 for a, b in cutEdge:
-    print("브리지는", a, b)
+    print("간선(", a, ",", b, ")는 브릿지입니다.")
